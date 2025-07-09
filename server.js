@@ -200,7 +200,7 @@ const UserSchema = new mongoose.Schema({
   // Campos de activación y suscripción
   isActive: {
     type: Boolean,
-    default: false // Los usuarios se registran desactivados
+    default: true // TEMPORAL: Los usuarios se registran activos para desarrollo
   },
   activatedAt: {
     type: Date,
@@ -213,7 +213,7 @@ const UserSchema = new mongoose.Schema({
   subscriptionStatus: {
     type: String,
     enum: ['pending', 'active', 'expired', 'suspended'],
-    default: 'pending'
+    default: 'active' // TEMPORAL: Suscripción activa para desarrollo
   },
   activatedBy: {
     type: String,

@@ -4,16 +4,13 @@ const API_URL = 'http://localhost:5000/api'
 // Estado de usuario actual (en memoria)
 let currentUser = JSON.parse(localStorage.getItem('maclean_current_user') || 'null')
 
-// Limpiar datos locales de simulación
+// Limpiar datos locales
 export const clearLocalData = () => {
-  localStorage.removeItem('maclean_users')
-  localStorage.removeItem('maclean_profiles')
   localStorage.removeItem('maclean_current_user')
-  localStorage.clear() // Limpiar TODO el localStorage
-  console.log('🧹 Datos locales limpiados COMPLETAMENTE - ahora usando API MongoDB')
+  console.log('🔄 Sistema MongoDB activo')
 }
 
-// Funciones de autenticación con API MongoDB
+// Funciones de autenticación con MongoDB
 export const auth = {
   // Registrar nuevo usuario
   signUp: async (email, password, userData) => {
@@ -37,14 +34,11 @@ export const auth = {
         throw new Error(data.error || 'Error en el registro')
       }
 
-      // NO establecer usuario actual - debe estar desactivado
-      console.log('✅ Usuario registrado en MongoDB (DESACTIVADO):', data.user.email)
+      console.log('✅ Usuario registrado en MongoDB:', data.user.email)
 
-      // Retornar éxito pero SIN sesión activa
       return {
         data: {
-          user: null, // No hay usuario activo
-          session: null, // No hay sesión
+          user: null, // Usuario registrado pero desactivado
           message: 'Registro exitoso. Tu cuenta está pendiente de activación por el administrador.'
         },
         error: null

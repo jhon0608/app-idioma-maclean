@@ -1,11 +1,38 @@
-import React from 'react'
-import { Globe, BookOpen, Trophy, Target, Clock, Star, LogOut } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Globe, BookOpen, Trophy, Target, Clock, Star, LogOut, TrendingUp } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
 const Dashboard = () => {
   const { user, profile, signOut } = useAuth()
   const navigate = useNavigate()
+  const [userProgress, setUserProgress] = useState([])
+  const [languages, setLanguages] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchData()
+  }, [user])
+
+  const fetchData = async () => {
+    try {
+      // Obtener idiomas
+      const languagesResponse = await fetch('http://localhost:5000/api/languages')
+      const languagesData = await languagesResponse.json()
+      setLanguages(languagesData)
+
+      // Obtener progreso del usuario
+      if (user) {
+        const progressResponse = await fetch(`http://localhost:5000/api/users/${user.id}/progress`)
+        const progressData = await progressResponse.json()
+        setUserProgress(progressData)
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSignOut = async () => {
     const result = await signOut()
@@ -29,6 +56,42 @@ const Dashboard = () => {
   const getUserInitials = () => {
     const name = getUserName()
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  }
+
+  // Calcular estadísticas reales
+  const getTotalScore = () => {
+    return userProgress.reduce((total, progress) => total + progress.totalScore, 0)
+  }
+
+  const getTotalLessonsCompleted = () => {
+    return userProgress.reduce((total, progress) => total + progress.completedLessons.length, 0)
+  }
+
+  const getCurrentStreak = () => {
+    if (userProgress.length === 0) return 0
+    return Math.max(...userProgress.map(p => p.streak))
+  }
+
+  const getActiveLanguages = () => {
+    return userProgress.length
+  }
+
+  const getRecentActivity = () => {
+    const allCompletedLessons = []
+    userProgress.forEach(progress => {
+      progress.completedLessons.forEach(lesson => {
+        const language = languages.find(l => l.code === progress.languageCode)
+        allCompletedLessons.push({
+          ...lesson,
+          languageName: language?.name || progress.languageCode,
+          languageFlag: language?.flag || '🌍'
+        })
+      })
+    })
+
+    return allCompletedLessons
+      .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+      .slice(0, 5)
   }
 
   return (
@@ -73,80 +136,148 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="card text-center">
-            <div className="bg-primary-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-              <BookOpen className="h-6 w-6 text-primary-600" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900">3</h3>
-            <p className="text-gray-600">Idiomas Activos</p>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="card text-center animate-pulse">
+                <div className="bg-gray-200 w-12 h-12 rounded-full mx-auto mb-3"></div>
+                <div className="bg-gray-200 h-6 w-8 mx-auto mb-2 rounded"></div>
+                <div className="bg-gray-200 h-4 w-20 mx-auto rounded"></div>
+              </div>
+            ))}
           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="card text-center">
+              <div className="bg-primary-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                <BookOpen className="h-6 w-6 text-primary-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900">{getActiveLanguages()}</h3>
+              <p className="text-gray-600">Idiomas Activos</p>
+            </div>
 
-          <div className="card text-center">
-            <div className="bg-secondary-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Trophy className="h-6 w-6 text-secondary-600" />
+            <div className="card text-center">
+              <div className="bg-secondary-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Trophy className="h-6 w-6 text-secondary-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900">{getTotalScore()}</h3>
+              <p className="text-gray-600">Puntos Totales</p>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">12</h3>
-            <p className="text-gray-600">Logros Desbloqueados</p>
-          </div>
 
-          <div className="card text-center">
-            <div className="bg-yellow-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Target className="h-6 w-6 text-yellow-600" />
+            <div className="card text-center">
+              <div className="bg-yellow-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Target className="h-6 w-6 text-yellow-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900">{getTotalLessonsCompleted()}</h3>
+              <p className="text-gray-600">Lecciones Completadas</p>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">85%</h3>
-            <p className="text-gray-600">Progreso Promedio</p>
-          </div>
 
-          <div className="card text-center">
-            <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Clock className="h-6 w-6 text-purple-600" />
+            <div className="card text-center">
+              <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                <TrendingUp className="h-6 w-6 text-purple-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900">{getCurrentStreak()}</h3>
+              <p className="text-gray-600">Racha Actual</p>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">47h</h3>
-            <p className="text-gray-600">Tiempo Total</p>
           </div>
-        </div>
+        )}
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Current Courses */}
           <div className="lg:col-span-2">
             <div className="card">
-              <h2 className="text-xl font-semibold mb-6">Mis Cursos Actuales</h2>
-              
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold">Mis Cursos Actuales</h2>
+                <button
+                  onClick={() => navigate('/languages')}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  Ver todos los idiomas
+                </button>
+              </div>
+
               <div className="space-y-4">
-                {[
-                  { name: 'Inglés', level: 'Intermedio', progress: 75, flag: '🇺🇸' },
-                  { name: 'Francés', level: 'Básico', progress: 45, flag: '🇫🇷' },
-                  { name: 'Japonés', level: 'Principiante', progress: 20, flag: '🇯🇵' }
-                ].map((course, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                       onClick={() => navigate('/learn/en')}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-2xl">{course.flag}</span>
+                {loading ? (
+                  [1, 2, 3].map(i => (
+                    <div key={i} className="border border-gray-200 rounded-lg p-4 animate-pulse">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded"></div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{course.name}</h3>
-                          <p className="text-sm text-gray-600">{course.level}</p>
+                          <div className="w-20 h-4 bg-gray-200 rounded mb-1"></div>
+                          <div className="w-16 h-3 bg-gray-200 rounded"></div>
                         </div>
                       </div>
-                      <button className="btn-primary text-sm" onClick={(e) => {
-                        e.stopPropagation()
-                        navigate('/learn/en')
-                      }}>
-                        Continuar
-                      </button>
+                      <div className="w-full bg-gray-200 rounded-full h-2"></div>
                     </div>
-                    
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${course.progress}%` }}
-                      />
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">{course.progress}% completado</p>
+                  ))
+                ) : userProgress.length > 0 ? (
+                  userProgress.map((progress) => {
+                    const language = languages.find(l => l.code === progress.languageCode)
+                    const totalPossibleLessons = language?.totalLessons || 10
+                    const completedLessons = progress.completedLessons.length
+                    const progressPercentage = Math.round((completedLessons / totalPossibleLessons) * 100)
+
+                    return (
+                      <div
+                        key={progress.languageCode}
+                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => navigate(`/learn/${progress.languageCode}`)}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <span className="text-2xl">{language?.flag || '🌍'}</span>
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{language?.name || progress.languageCode}</h3>
+                              <p className="text-sm text-gray-600 capitalize">{progress.level}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-gray-600 mb-1">
+                              {completedLessons}/{totalPossibleLessons} lecciones
+                            </div>
+                            <button className="btn-primary text-sm" onClick={(e) => {
+                              e.stopPropagation()
+                              navigate(`/learn/${progress.languageCode}`)
+                            }}>
+                              Continuar
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${progressPercentage}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center mt-2">
+                          <p className="text-sm text-gray-600">{progressPercentage}% completado</p>
+                          <div className="flex items-center space-x-2 text-sm text-gray-600">
+                            <Star className="w-4 h-4 text-yellow-500" />
+                            <span>{progress.totalScore} puntos</span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="text-center py-8">
+                    <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      ¡Comienza tu aventura de aprendizaje!
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      Selecciona un idioma para comenzar a aprender
+                    </p>
+                    <button
+                      onClick={() => navigate('/languages')}
+                      className="btn-primary"
+                    >
+                      Explorar Idiomas
+                    </button>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
@@ -188,23 +319,47 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Recent Achievements */}
+            {/* Recent Activity */}
             <div className="card">
-              <h3 className="font-semibold mb-4">Logros Recientes</h3>
+              <h3 className="font-semibold mb-4">Actividad Reciente</h3>
               <div className="space-y-3">
-                {[
-                  { name: 'Primera Lección', icon: '🎯', date: 'Hoy' },
-                  { name: 'Racha de 7 días', icon: '🔥', date: 'Ayer' },
-                  { name: 'Vocabulario Básico', icon: '📚', date: '2 días' }
-                ].map((achievement, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <span className="text-2xl">{achievement.icon}</span>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{achievement.name}</p>
-                      <p className="text-xs text-gray-500">{achievement.date}</p>
+                {loading ? (
+                  [1, 2, 3].map(i => (
+                    <div key={i} className="flex items-center space-x-3 animate-pulse">
+                      <div className="w-8 h-8 bg-gray-200 rounded"></div>
+                      <div className="flex-1">
+                        <div className="w-24 h-3 bg-gray-200 rounded mb-1"></div>
+                        <div className="w-16 h-2 bg-gray-200 rounded"></div>
+                      </div>
                     </div>
+                  ))
+                ) : getRecentActivity().length > 0 ? (
+                  getRecentActivity().map((activity, index) => (
+                    <div key={index} className="flex items-center space-x-3">
+                      <span className="text-2xl">{activity.languageFlag}</span>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">
+                          Lección {activity.unit}.{activity.lesson} completada
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {activity.languageName} • {activity.score} puntos
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(activity.completedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500">
+                      No hay actividad reciente
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      ¡Completa tu primera lección!
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -212,13 +367,24 @@ const Dashboard = () => {
             <div className="card">
               <h3 className="font-semibold mb-4">Acciones Rápidas</h3>
               <div className="space-y-2">
-                <button className="w-full btn-primary text-sm py-2">
-                  Lección Rápida
+                <button
+                  onClick={() => navigate('/languages')}
+                  className="w-full btn-primary text-sm py-2"
+                >
+                  Explorar Idiomas
                 </button>
-                <button className="w-full btn-outline text-sm py-2">
-                  Práctica de Vocabulario
-                </button>
-                <button className="w-full btn-outline text-sm py-2">
+                {userProgress.length > 0 && (
+                  <button
+                    onClick={() => navigate(`/learn/${userProgress[0].languageCode}`)}
+                    className="w-full btn-outline text-sm py-2"
+                  >
+                    Continuar Aprendiendo
+                  </button>
+                )}
+                <button
+                  onClick={() => navigate('/languages')}
+                  className="w-full btn-outline text-sm py-2"
+                >
                   Nuevo Idioma
                 </button>
               </div>

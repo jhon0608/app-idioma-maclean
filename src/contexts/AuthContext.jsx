@@ -20,9 +20,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Limpiar datos locales de simulación al iniciar
     clearLocalData()
-    // Forzar logout para limpiar cualquier sesión corrupta
-    setUser(null)
-    setProfile(null)
 
     // Obtener usuario actual al cargar
     const getInitialUser = async () => {
@@ -30,9 +27,12 @@ export const AuthProvider = ({ children }) => {
         const { data: { user } } = await auth.getCurrentUser()
         if (user) {
           setUser(user)
-          // Obtener perfil del usuario
-          const { data: profileData } = await db.getUserProfile(user.id)
-          setProfile(profileData)
+          setProfile({
+            id: user.id,
+            first_name: user.user_metadata?.first_name || '',
+            last_name: user.user_metadata?.last_name || '',
+            full_name: user.user_metadata?.full_name || ''
+          })
         }
       } catch (error) {
         console.error('Error al obtener usuario inicial:', error)
@@ -48,9 +48,12 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setUser(session.user)
-        // Obtener perfil del usuario
-        const { data: profileData } = await db.getUserProfile(session.user.id)
-        setProfile(profileData)
+        setProfile({
+          id: session.user.id,
+          first_name: session.user.user_metadata?.first_name || '',
+          last_name: session.user.user_metadata?.last_name || '',
+          full_name: session.user.user_metadata?.full_name || ''
+        })
       } else {
         setUser(null)
         setProfile(null)
@@ -68,19 +71,18 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true)
       setError(null)
-      
+
       const { data, error } = await auth.signUp(email, password, userData)
-      
+
       if (error) {
         setError(error.message)
         return { success: false, error: error.message }
       }
 
-      // El registro fue exitoso pero el usuario queda DESACTIVADO
       return {
         success: true,
         data,
-        message: data.message || 'Registro exitoso. Tu cuenta está pendiente de activación.'
+        message: data.message || 'Registro exitoso'
       }
     } catch (error) {
       setError(error.message)

@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 
 import LanguagesPage from './pages/LanguagesPage'
 import LearnPage from './pages/LearnPage'
+import LessonPage from './pages/LessonPage'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -40,6 +41,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <LearnPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/lesson/:lessonId"
+            element={
+              <ProtectedRoute>
+                <LessonPage />
               </ProtectedRoute>
             }
           />
