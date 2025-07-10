@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, BookOpen, Play, CheckCircle, Lock, Star } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { API_BASE_URL } from '../config/api'
+
 
 const LearnPage = () => {
   const { languageCode } = useParams()
@@ -23,7 +25,7 @@ const LearnPage = () => {
 
   const fetchLanguageData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/languages')
+      const response = await fetch(`${API_BASE_URL}/api/languages`)
       const languages = await response.json()
       const currentLanguage = languages.find(l => l.code === languageCode)
       setLanguage(currentLanguage)
@@ -34,7 +36,7 @@ const LearnPage = () => {
 
   const fetchLessons = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/languages/${languageCode}/lessons?level=${selectedLevel}`)
+      const response = await fetch(`${API_BASE_URL}/api/languages/${languageCode}/lessons?level=${selectedLevel}`)
       const data = await response.json()
       setLessons(data)
     } catch (error) {
@@ -44,7 +46,7 @@ const LearnPage = () => {
 
   const fetchUserProgress = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${user.id}/progress?languageCode=${languageCode}`)
+      const response = await fetch(`${API_BASE_URL}/api/users/${user.id}/progress?languageCode=${languageCode}`)
       const data = await response.json()
       setUserProgress(data[0] || null)
     } catch (error) {
@@ -195,6 +197,24 @@ const LearnPage = () => {
                 </div>
                 <div className="text-sm text-gray-600">Lección Actual</div>
               </div>
+            </div>
+
+            {/* Botones de práctica */}
+            <div className="mt-6 text-center space-x-4">
+              <button
+                onClick={() => navigate(`/ai-tutor/${language.code}`)}
+                className="inline-flex items-center space-x-2 px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors"
+              >
+                <span>🤖</span>
+                <span>Tutor de IA</span>
+              </button>
+              <button
+                onClick={() => navigate(`/practice/${language.code}`)}
+                className="inline-flex items-center space-x-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
+              >
+                <span>🎤</span>
+                <span>Practicar Pronunciación</span>
+              </button>
             </div>
           </div>
         </div>

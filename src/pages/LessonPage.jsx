@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Volume2, CheckCircle, X, RotateCcw, Trophy } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import VoicePractice from '../components/VoicePractice'
+import { API_BASE_URL } from '../config/api'
+
 
 const LessonPage = () => {
   const { lessonId } = useParams()
@@ -10,11 +13,13 @@ const LessonPage = () => {
   
   const [lesson, setLesson] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [currentStep, setCurrentStep] = useState('vocabulary') // vocabulary, exercises, results
+  const [currentStep, setCurrentStep] = useState('vocabulary') // vocabulary, pronunciation, exercises, results
   const [currentExercise, setCurrentExercise] = useState(0)
   const [userAnswers, setUserAnswers] = useState([])
   const [score, setScore] = useState(0)
   const [showResults, setShowResults] = useState(false)
+  const [pronunciationProgress, setPronunciationProgress] = useState([])
+  const [currentPronunciationIndex, setCurrentPronunciationIndex] = useState(0)
 
   useEffect(() => {
     fetchLesson()
@@ -22,7 +27,7 @@ const LessonPage = () => {
 
   const fetchLesson = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/lessons/${lessonId}`)
+      const response = await fetch(`${API_BASE_URL}/api/lessons/${lessonId}`)
       const data = await response.json()
       setLesson(data)
       setLoading(false)
@@ -32,11 +37,40 @@ const LessonPage = () => {
     }
   }
 
+  const handleStartPronunciation = () => {
+    setCurrentStep('pronunciation')
+    setCurrentPronunciationIndex(0)
+    setPronunciationProgress([])
+  }
+
   const handleStartExercises = () => {
     setCurrentStep('exercises')
     setCurrentExercise(0)
     setUserAnswers([])
     setScore(0)
+  }
+
+  const handlePronunciationSuccess = (similarity) => {
+    const newProgress = [...pronunciationProgress]
+    newProgress[currentPronunciationIndex] = { success: true, similarity }
+    setPronunciationProgress(newProgress)
+
+    // Avanzar al siguiente vocabulario o ir a ejercicios
+    if (currentPronunciationIndex < lesson.vocabulary.length - 1) {
+      setCurrentPronunciationIndex(currentPronunciationIndex + 1)
+    } else {
+      // Completó toda la pronunciación, ir a ejercicios
+      setTimeout(() => {
+        handleStartExercises()
+      }, 2000)
+    }
+  }
+
+  const handlePronunciationError = (similarity) => {
+    // Permitir continuar después de varios intentos
+    const newProgress = [...pronunciationProgress]
+    newProgress[currentPronunciationIndex] = { success: false, similarity }
+    setPronunciationProgress(newProgress)
   }
 
   const handleAnswerSubmit = (answer) => {
@@ -67,7 +101,7 @@ const LessonPage = () => {
 
   const completeLesson = async (finalScore) => {
     try {
-      await fetch(`http://localhost:5000/api/lessons/${lessonId}/complete`, {
+      await fetch(`${API_BASE_URL}/api/lessons/${lessonId}/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -172,11 +206,97 @@ const LessonPage = () => {
 
             <div className="text-center">
               <button
-                onClick={handleStartExercises}
+                onClick={handleStartPronunciation}
                 className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
-                Comenzar Ejercicios
+                Practicar Pronunciación
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Pronunciation Section */}
+        {currentStep === 'pronunciation' && (
+          <div className="bg-white rounded-xl shadow-lg p-8">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">🎤 Práctica de Pronunciación</h2>
+              <p className="text-gray-600">
+                Palabra {currentPronunciationIndex + 1} de {lesson.vocabulary.length}
+              </p>
+            </div>
+
+            {/* Progreso */}
+            <div className="mb-8">
+              <div className="flex justify-center space-x-2 mb-4">
+                {lesson.vocabulary.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`w-3 h-3 rounded-full ${
+                      index < currentPronunciationIndex
+                        ? pronunciationProgress[index]?.success
+                          ? 'bg-green-500'
+                          : 'bg-yellow-500'
+                        : index === currentPronunciationIndex
+                        ? 'bg-blue-500'
+                        : 'bg-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(currentPronunciationIndex / lesson.vocabulary.length) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Componente de práctica de voz */}
+            {lesson.vocabulary[currentPronunciationIndex] && (
+              <VoicePractice
+                text={lesson.vocabulary[currentPronunciationIndex].word}
+                language={lesson.languageCode}
+                onSuccess={handlePronunciationSuccess}
+                onError={handlePronunciationError}
+                difficulty={lesson.level}
+              />
+            )}
+
+            {/* Botones de navegación */}
+            <div className="flex justify-between mt-8">
+              <button
+                onClick={() => setCurrentStep('vocabulary')}
+                className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                ← Volver al Vocabulario
+              </button>
+
+              <div className="space-x-4">
+                {currentPronunciationIndex > 0 && (
+                  <button
+                    onClick={() => setCurrentPronunciationIndex(currentPronunciationIndex - 1)}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    Anterior
+                  </button>
+                )}
+
+                {currentPronunciationIndex < lesson.vocabulary.length - 1 ? (
+                  <button
+                    onClick={() => setCurrentPronunciationIndex(currentPronunciationIndex + 1)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Siguiente
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStartExercises}
+                    className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                  >
+                    Ir a Ejercicios →
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

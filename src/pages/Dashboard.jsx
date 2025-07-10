@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Globe, BookOpen, Trophy, Target, Clock, Star, LogOut, TrendingUp } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { API_BASE_URL } from '../config/api'
+
 
 const Dashboard = () => {
   const { user, profile, signOut } = useAuth()
@@ -17,13 +19,13 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       // Obtener idiomas
-      const languagesResponse = await fetch('http://localhost:5000/api/languages')
+      const languagesResponse = await fetch(`${API_BASE_URL}/api/languages`)
       const languagesData = await languagesResponse.json()
       setLanguages(languagesData)
 
       // Obtener progreso del usuario
       if (user) {
-        const progressResponse = await fetch(`http://localhost:5000/api/users/${user.id}/progress`)
+        const progressResponse = await fetch(`${API_BASE_URL}/api/users/${user.id}/progress`)
         const progressData = await progressResponse.json()
         setUserProgress(progressData)
       }
@@ -367,12 +369,21 @@ const Dashboard = () => {
             <div className="card">
               <h3 className="font-semibold mb-4">Acciones Rápidas</h3>
               <div className="space-y-2">
-                <button
-                  onClick={() => navigate('/languages')}
-                  className="w-full btn-primary text-sm py-2"
-                >
-                  Explorar Idiomas
-                </button>
+                {userProgress.length > 0 ? (
+                  <button
+                    onClick={() => navigate(`/ai-tutor/${userProgress[0].languageCode}`)}
+                    className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-sm py-3 rounded-lg font-medium transition-all transform hover:scale-105"
+                  >
+                    🤖 Conversar con Tutor de IA
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate('/languages')}
+                    className="w-full btn-primary text-sm py-2"
+                  >
+                    Explorar Idiomas
+                  </button>
+                )}
                 {userProgress.length > 0 && (
                   <button
                     onClick={() => navigate(`/learn/${userProgress[0].languageCode}`)}
@@ -387,6 +398,28 @@ const Dashboard = () => {
                 >
                   Nuevo Idioma
                 </button>
+                <button
+                  onClick={() => navigate('/quick-tutor')}
+                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white text-sm py-2 rounded-lg font-medium transition-all"
+                >
+                  🤖 Tutores de IA (Todos los idiomas)
+                </button>
+                {userProgress.length > 0 && (
+                  <>
+                    <button
+                      onClick={() => navigate(`/ai-tutor/${userProgress[0].languageCode}`)}
+                      className="w-full bg-purple-500 hover:bg-purple-600 text-white text-sm py-2 rounded-lg transition-colors"
+                    >
+                      🤖 Mi Tutor Actual
+                    </button>
+                    <button
+                      onClick={() => navigate(`/practice/${userProgress[0].languageCode}`)}
+                      className="w-full bg-green-500 hover:bg-green-600 text-white text-sm py-2 rounded-lg transition-colors"
+                    >
+                      🎤 Practicar Pronunciación
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

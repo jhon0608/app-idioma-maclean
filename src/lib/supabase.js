@@ -1,5 +1,7 @@
+import { API_BASE_URL } from '../config/api'
+
 // API Backend URL
-const API_URL = 'http://localhost:5000/api'
+const API_URL = `${API_BASE_URL}/api`
 
 // Estado de usuario actual (en memoria)
 let currentUser = JSON.parse(localStorage.getItem('maclean_current_user') || 'null')

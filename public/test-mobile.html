@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Móvil - Maclean</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .status {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .success { background: rgba(0,255,0,0.2); }
+        .error { background: rgba(255,0,0,0.2); }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            width: 100%;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .info {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Test Móvil - Maclean</h1>
+        
+        <div class="info">
+            <strong>IP detectada:</strong> <span id="ip"></span><br>
+            <strong>URL Frontend:</strong> <span id="frontend-url"></span><br>
+            <strong>URL Backend:</strong> <span id="backend-url"></span>
+        </div>
+        
+        <button onclick="testFrontend()">🌐 Test Frontend</button>
+        <button onclick="testBackend()">⚙️ Test Backend</button>
+        <button onclick="testOpenAI()">🤖 Test OpenAI</button>
+        <button onclick="goToApp()">🚀 Ir a la App</button>
+        
+        <div id="status" class="status">
+            Presiona los botones para probar la conectividad
+        </div>
+        
+        <div class="info">
+            <h3>📱 Instrucciones:</h3>
+            <p>1. Asegúrate de estar en la misma WiFi</p>
+            <p>2. Usa esta URL en tu celular: <strong>http://192.168.0.22:3000</strong></p>
+            <p>3. Si no funciona, prueba: <strong>http://[IP-DE-TU-PC]:3000</strong></p>
+        </div>
+    </div>
+
+    <script>
+        // Detectar IP y URLs
+        const hostname = window.location.hostname;
+        const frontendUrl = `http://${hostname}:3000`;
+        const backendUrl = `http://${hostname}:5000`;
+        
+        document.getElementById('ip').textContent = hostname;
+        document.getElementById('frontend-url').textContent = frontendUrl;
+        document.getElementById('backend-url').textContent = backendUrl;
+        
+        function updateStatus(message, isSuccess = true) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = isSuccess ? 'status success' : 'status error';
+        }
+        
+        function testFrontend() {
+            updateStatus('🔄 Probando frontend...');
+            fetch(frontendUrl)
+                .then(response => {
+                    if (response.ok) {
+                        updateStatus('✅ Frontend funcionando correctamente!');
+                    } else {
+                        updateStatus('❌ Frontend responde pero con errores', false);
+                    }
+                })
+                .catch(error => {
+                    updateStatus('❌ Error conectando al frontend: ' + error.message, false);
+                });
+        }
+        
+        function testBackend() {
+            updateStatus('🔄 Probando backend...');
+            fetch(`${backendUrl}/api/test`)
+                .then(response => response.json())
+                .then(data => {
+                    updateStatus('✅ Backend funcionando: ' + data.message);
+                })
+                .catch(error => {
+                    updateStatus('❌ Error conectando al backend: ' + error.message, false);
+                });
+        }
+        
+        function testOpenAI() {
+            updateStatus('🔄 Probando OpenAI...');
+            fetch(`${backendUrl}/api/test-openai`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateStatus('✅ OpenAI funcionando: ' + data.message);
+                    } else {
+                        updateStatus('❌ Error OpenAI: ' + data.error, false);
+                    }
+                })
+                .catch(error => {
+                    updateStatus('❌ Error probando OpenAI: ' + error.message, false);
+                });
+        }
+        
+        function goToApp() {
+            window.location.href = frontendUrl;
+        }
+        
+        // Test automático al cargar
+        setTimeout(() => {
+            testBackend();
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -6,9 +6,12 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import Dashboard from './pages/Dashboard'
 
-import LanguagesPage from './pages/LanguagesPage'
+import LanguageSelection from './pages/LanguageSelection'
 import LearnPage from './pages/LearnPage'
 import LessonPage from './pages/LessonPage'
+import PronunciationPractice from './pages/PronunciationPractice'
+import AITutorPage from './pages/AITutorPage'
+import QuickTutor from './pages/QuickTutor'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -32,7 +35,7 @@ function App() {
             path="/languages"
             element={
               <ProtectedRoute>
-                <LanguagesPage />
+                <LanguageSelection />
               </ProtectedRoute>
             }
           />
@@ -49,6 +52,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <LessonPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practice/:languageCode"
+            element={
+              <ProtectedRoute>
+                <PronunciationPractice />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-tutor/:languageCode"
+            element={
+              <ProtectedRoute>
+                <AITutorPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quick-tutor"
+            element={
+              <ProtectedRoute>
+                <QuickTutor />
               </ProtectedRoute>
             }
           />

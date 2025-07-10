@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Users, UserCheck, UserX, Clock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
+import { API_BASE_URL } from '../config/api'
+
 
 const AdminPanel = () => {
   const [users, setUsers] = useState([])
@@ -14,7 +16,7 @@ const AdminPanel = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin/users')
+      const response = await fetch(`${API_BASE_URL}/api/admin/users`)
       const data = await response.json()
       setUsers(data.users)
     } catch (error) {
@@ -26,7 +28,7 @@ const AdminPanel = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin/stats')
+      const response = await fetch(`${API_BASE_URL}/api/admin/stats`)
       const data = await response.json()
       setStats(data)
     } catch (error) {
@@ -37,7 +39,7 @@ const AdminPanel = () => {
   const activateUser = async (userId) => {
     setActionLoading(userId)
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/activate/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/activate/${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminEmail: 'admin@maclean.com' })
@@ -59,7 +61,7 @@ const AdminPanel = () => {
   const deactivateUser = async (userId) => {
     setActionLoading(userId)
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/deactivate/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/deactivate/${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminEmail: 'admin@maclean.com' })

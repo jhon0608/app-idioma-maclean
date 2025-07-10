@@ -2,12 +2,21 @@ import express from 'express'
 import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 import cors from 'cors'
+import OpenAI from 'openai'
 
 const app = express()
 const PORT = 5000
 
+// Configuración de OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || 'tu-api-key-aqui'
+})
+
 // Middleware
-app.use(cors())
+app.use(cors({
+  origin: '*', // Permite acceso desde cualquier origen (incluyendo móviles)
+  credentials: true
+}))
 app.use(express.json())
 
 // Conexión a MongoDB
@@ -25,15 +34,28 @@ const initializeLanguageData = async () => {
 
     console.log('🚀 Inicializando datos de idiomas...')
 
-    // Crear idiomas iniciales
+    // Crear idiomas iniciales - Lista expandida
     const languages = [
+      // Idiomas Europeos
       {
         code: 'en',
         name: 'English',
         nativeName: 'English',
         flag: '🇺🇸',
         difficulty: 'beginner',
-        totalLessons: 10
+        totalLessons: 15,
+        category: 'European',
+        isActive: true
+      },
+      {
+        code: 'es',
+        name: 'Spanish',
+        nativeName: 'Español',
+        flag: '🇪🇸',
+        difficulty: 'beginner',
+        totalLessons: 12,
+        category: 'European',
+        isActive: true
       },
       {
         code: 'fr',
@@ -41,7 +63,9 @@ const initializeLanguageData = async () => {
         nativeName: 'Français',
         flag: '🇫🇷',
         difficulty: 'intermediate',
-        totalLessons: 8
+        totalLessons: 10,
+        category: 'European',
+        isActive: true
       },
       {
         code: 'de',
@@ -49,7 +73,9 @@ const initializeLanguageData = async () => {
         nativeName: 'Deutsch',
         flag: '🇩🇪',
         difficulty: 'intermediate',
-        totalLessons: 6
+        totalLessons: 8,
+        category: 'European',
+        isActive: true
       },
       {
         code: 'it',
@@ -57,7 +83,122 @@ const initializeLanguageData = async () => {
         nativeName: 'Italiano',
         flag: '🇮🇹',
         difficulty: 'beginner',
-        totalLessons: 8
+        totalLessons: 10,
+        category: 'European',
+        isActive: true
+      },
+      {
+        code: 'pt',
+        name: 'Portuguese',
+        nativeName: 'Português',
+        flag: '🇵🇹',
+        difficulty: 'beginner',
+        totalLessons: 10,
+        category: 'European',
+        isActive: true
+      },
+      {
+        code: 'ru',
+        name: 'Russian',
+        nativeName: 'Русский',
+        flag: '🇷🇺',
+        difficulty: 'advanced',
+        totalLessons: 12,
+        category: 'European',
+        isActive: true
+      },
+      {
+        code: 'nl',
+        name: 'Dutch',
+        nativeName: 'Nederlands',
+        flag: '🇳🇱',
+        difficulty: 'intermediate',
+        totalLessons: 8,
+        category: 'European',
+        isActive: true
+      },
+      // Idiomas Asiáticos
+      {
+        code: 'zh',
+        name: 'Chinese (Mandarin)',
+        nativeName: '中文',
+        flag: '🇨🇳',
+        difficulty: 'advanced',
+        totalLessons: 15,
+        category: 'Asian',
+        isActive: true
+      },
+      {
+        code: 'ja',
+        name: 'Japanese',
+        nativeName: '日本語',
+        flag: '🇯🇵',
+        difficulty: 'advanced',
+        totalLessons: 12,
+        category: 'Asian',
+        isActive: true
+      },
+      {
+        code: 'ko',
+        name: 'Korean',
+        nativeName: '한국어',
+        flag: '🇰🇷',
+        difficulty: 'advanced',
+        totalLessons: 10,
+        category: 'Asian',
+        isActive: true
+      },
+      {
+        code: 'hi',
+        name: 'Hindi',
+        nativeName: 'हिन्दी',
+        flag: '🇮🇳',
+        difficulty: 'intermediate',
+        totalLessons: 8,
+        category: 'Asian',
+        isActive: true
+      },
+      // Idiomas del Medio Oriente y África
+      {
+        code: 'ar',
+        name: 'Arabic',
+        nativeName: 'العربية',
+        flag: '🇸🇦',
+        difficulty: 'advanced',
+        totalLessons: 12,
+        category: 'Middle Eastern',
+        isActive: true
+      },
+      {
+        code: 'he',
+        name: 'Hebrew',
+        nativeName: 'עברית',
+        flag: '🇮🇱',
+        difficulty: 'advanced',
+        totalLessons: 8,
+        category: 'Middle Eastern',
+        isActive: true
+      },
+      // Idiomas Nórdicos
+      {
+        code: 'sv',
+        name: 'Swedish',
+        nativeName: 'Svenska',
+        flag: '🇸🇪',
+        difficulty: 'intermediate',
+        totalLessons: 8,
+        category: 'Nordic',
+        isActive: true
+      },
+      {
+        code: 'no',
+        name: 'Norwegian',
+        nativeName: 'Norsk',
+        flag: '🇳🇴',
+        difficulty: 'intermediate',
+        totalLessons: 8,
+        category: 'Nordic',
+        isActive: true
       }
     ]
 
@@ -285,6 +426,11 @@ const LanguageSchema = new mongoose.Schema({
   totalLessons: {
     type: Number,
     default: 0
+  },
+  category: {
+    type: String,
+    enum: ['European', 'Asian', 'Middle Eastern', 'Nordic', 'African', 'American'],
+    default: 'European'
   },
   createdAt: {
     type: Date,
@@ -570,7 +716,54 @@ app.post('/api/login', checkUserStatus, async (req, res) => {
   }
 })
 
+// Arreglar TODOS los usuarios - EMERGENCIA
+app.post('/api/emergency-fix-all-users', async (req, res) => {
+  try {
+    const now = new Date()
+    const expirationDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000))
+
+    // Activar TODOS los usuarios
+    const result = await User.updateMany(
+      {},
+      {
+        $set: {
+          isActive: true,
+          activatedAt: now,
+          expiresAt: expirationDate
+        }
+      }
+    )
+
+    console.log('🚨 EMERGENCIA: Todos los usuarios reactivados')
+    res.json({
+      success: true,
+      message: `${result.modifiedCount} usuarios reactivados`,
+      usersFixed: result.modifiedCount
+    })
+  } catch (error) {
+    console.error('❌ Error en arreglo de emergencia:', error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
 // ==================== RUTAS DE IDIOMAS ====================
+
+// ENDPOINT TEMPORAL: Forzar actualización de idiomas
+app.post('/api/admin/reset-languages', async (req, res) => {
+  try {
+    // Borrar todos los idiomas existentes
+    await Language.deleteMany({})
+    console.log('🗑️ Idiomas existentes eliminados')
+
+    // Ejecutar la inicialización forzada
+    await initializeLanguageData()
+
+    res.json({ success: true, message: 'Idiomas actualizados correctamente' })
+  } catch (error) {
+    console.error('Error actualizando idiomas:', error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
 
 // Obtener todos los idiomas disponibles
 app.get('/api/languages', async (req, res) => {
@@ -865,6 +1058,203 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API funcionando correctamente' })
 })
 
+// Ruta de prueba para OpenAI
+app.get('/api/test-openai', async (req, res) => {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "user", content: "Say hello in English, Spanish, and French" }
+      ],
+      max_tokens: 100
+    })
+
+    res.json({
+      success: true,
+      message: response.choices[0].message.content,
+      status: 'OpenAI funcionando correctamente'
+    })
+  } catch (error) {
+    res.json({
+      success: false,
+      error: error.message,
+      status: 'Error con OpenAI'
+    })
+  }
+})
+
+// ==================== TUTOR DE IA CON OPENAI ====================
+
+// Función para obtener ejemplos específicos por idioma
+const getLanguageExamples = (languageCode, languageName, userLevel) => {
+  const examples = {
+    'en': {
+      greeting: userLevel === 'beginner' ? "Hello! How are you?" : userLevel === 'intermediate' ? "Hey there! What's up?" : "Greetings! How have you been?",
+      question: userLevel === 'beginner' ? "What is your name?" : userLevel === 'intermediate' ? "What do you like to do for fun?" : "What are your thoughts on current events?"
+    },
+    'es': {
+      greeting: userLevel === 'beginner' ? "¡Hola! ¿Cómo estás?" : userLevel === 'intermediate' ? "¡Hola! ¿Qué tal?" : "¡Saludos! ¿Cómo has estado?",
+      question: userLevel === 'beginner' ? "¿Cómo te llamas?" : userLevel === 'intermediate' ? "¿Qué te gusta hacer en tu tiempo libre?" : "¿Qué opinas sobre las noticias actuales?"
+    },
+    'fr': {
+      greeting: userLevel === 'beginner' ? "Bonjour! Comment allez-vous?" : userLevel === 'intermediate' ? "Salut! Ça va?" : "Bonjour! Comment vous portez-vous?",
+      question: userLevel === 'beginner' ? "Comment vous appelez-vous?" : userLevel === 'intermediate' ? "Qu'aimez-vous faire pendant votre temps libre?" : "Que pensez-vous de l'actualité?"
+    },
+    'de': {
+      greeting: userLevel === 'beginner' ? "Hallo! Wie geht es Ihnen?" : userLevel === 'intermediate' ? "Hallo! Wie geht's?" : "Guten Tag! Wie haben Sie sich befunden?",
+      question: userLevel === 'beginner' ? "Wie heißen Sie?" : userLevel === 'intermediate' ? "Was machen Sie gerne in Ihrer Freizeit?" : "Was denken Sie über aktuelle Ereignisse?"
+    },
+    'it': {
+      greeting: userLevel === 'beginner' ? "Ciao! Come stai?" : userLevel === 'intermediate' ? "Ciao! Come va?" : "Salve! Come è andato?",
+      question: userLevel === 'beginner' ? "Come ti chiami?" : userLevel === 'intermediate' ? "Cosa ti piace fare nel tempo libero?" : "Cosa pensi delle notizie attuali?"
+    },
+    'pt': {
+      greeting: userLevel === 'beginner' ? "Olá! Como está?" : userLevel === 'intermediate' ? "Oi! Tudo bem?" : "Olá! Como tem passado?",
+      question: userLevel === 'beginner' ? "Qual é o seu nome?" : userLevel === 'intermediate' ? "O que gosta de fazer no tempo livre?" : "O que acha das notícias atuais?"
+    },
+    'ru': {
+      greeting: userLevel === 'beginner' ? "Привет! Как дела?" : userLevel === 'intermediate' ? "Привет! Как поживаешь?" : "Здравствуйте! Как дела?",
+      question: userLevel === 'beginner' ? "Как вас зовут?" : userLevel === 'intermediate' ? "Что вы любите делать в свободное время?" : "Что вы думаете о текущих событиях?"
+    },
+    'zh': {
+      greeting: userLevel === 'beginner' ? "你好！你好吗？" : userLevel === 'intermediate' ? "嗨！最近怎么样？" : "您好！您最近过得怎么样？",
+      question: userLevel === 'beginner' ? "你叫什么名字？" : userLevel === 'intermediate' ? "你喜欢做什么？" : "你对时事有什么看法？"
+    },
+    'ja': {
+      greeting: userLevel === 'beginner' ? "こんにちは！元気ですか？" : userLevel === 'intermediate' ? "こんにちは！調子はどうですか？" : "こんにちは！いかがお過ごしですか？",
+      question: userLevel === 'beginner' ? "お名前は何ですか？" : userLevel === 'intermediate' ? "趣味は何ですか？" : "最近のニュースについてどう思いますか？"
+    },
+    'ko': {
+      greeting: userLevel === 'beginner' ? "안녕하세요! 어떻게 지내세요?" : userLevel === 'intermediate' ? "안녕! 잘 지내?" : "안녕하세요! 요즘 어떻게 지내세요?",
+      question: userLevel === 'beginner' ? "이름이 뭐예요?" : userLevel === 'intermediate' ? "취미가 뭐예요?" : "최근 뉴스에 대해 어떻게 생각하세요?"
+    }
+  }
+
+  return examples[languageCode] || examples['en']
+}
+
+// Función para obtener ejemplo de saludo por idioma
+function getGreetingExample(languageCode, languageName) {
+  const greetings = {
+    'en': 'Hello! (¡Hola!) How are you? (¿Cómo estás?)',
+    'fr': 'Bonjour! (¡Hola!) Comment allez-vous? (¿Cómo está usted?)',
+    'de': 'Hallo! (¡Hola!) Wie geht es Ihnen? (¿Cómo está usted?)',
+    'it': 'Ciao! (¡Hola!) Come stai? (¿Cómo estás?)',
+    'pt': 'Olá! (¡Hola!) Como está? (¿Cómo está?)',
+    'ja': 'こんにちは! (¡Hola!) 元気ですか? (¿Cómo estás?)',
+    'ko': '안녕하세요! (¡Hola!) 어떻게 지내세요? (¿Cómo está?)',
+    'zh': '你好! (¡Hola!) 你好吗? (¿Cómo estás?)',
+    'ru': 'Привет! (¡Hola!) Как дела? (¿Cómo estás?)',
+    'ar': 'مرحبا! (¡Hola!) كيف حالك? (¿Cómo estás?)'
+  }
+
+  return greetings[languageCode] || `Hello in ${languageName}! (¡Hola!) How are you? (¿Cómo estás?)`
+}
+
+// Función para obtener ejemplo de continuación por idioma
+function getContinueExample(languageCode, languageName) {
+  const continues = {
+    'en': 'Great! (¡Genial!) Tell me more. (Cuéntame más.)',
+    'fr': 'Très bien! (¡Muy bien!) Dites-moi plus. (Cuéntame más.)',
+    'de': 'Sehr gut! (¡Muy bien!) Erzählen Sie mir mehr. (Cuéntame más.)',
+    'it': 'Molto bene! (¡Muy bien!) Dimmi di più. (Cuéntame más.)',
+    'pt': 'Muito bem! (¡Muy bien!) Conte-me mais. (Cuéntame más.)',
+    'ja': 'いいですね! (¡Muy bien!) もっと教えて. (Cuéntame más.)',
+    'ko': '좋아요! (¡Muy bien!) 더 말해주세요. (Cuéntame más.)',
+    'zh': '很好! (¡Muy bien!) 告诉我更多. (Cuéntame más.)',
+    'ru': 'Отлично! (¡Excelente!) Расскажите больше. (Cuéntame más.)',
+    'ar': 'ممتاز! (¡Excelente!) أخبرني المزيد. (Cuéntame más.)'
+  }
+
+  return continues[languageCode] || `Great in ${languageName}! (¡Genial!) Tell me more. (Cuéntame más.)`
+}
+
+// Endpoint para iniciar conversación con el tutor de IA
+app.post('/api/ai-tutor/start-conversation', async (req, res) => {
+  try {
+    const { languageCode, languageName, userLevel, topic } = req.body
+    const langExamples = getLanguageExamples(languageCode, languageName, userLevel)
+
+    const systemPrompt = `You are a ${languageName} teacher. Speak ONLY in ${languageName} with Spanish translations.
+
+RULES:
+- Speak ${languageName} first, then Spanish in parentheses
+- Example: "${getGreetingExample(languageCode, languageName)}"
+- Be friendly and ask questions
+- Student level: ${userLevel}
+- Focus on practical conversation in ${languageName}
+
+Start greeting in ${languageName} now!`
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Hi teacher! I want to practice ${languageName}. Please greet me and ask me something in ${languageName} with Spanish translation.` }
+      ],
+      max_tokens: 150,
+      temperature: 0.8
+    })
+
+    res.json({
+      success: true,
+      message: response.choices[0].message.content,
+      conversationId: Date.now().toString()
+    })
+
+  } catch (error) {
+    console.error('Error con OpenAI:', error)
+    res.json({
+      success: true,
+      message: 'Hello! (¡Hola!) I\'m your English teacher. (Soy tu profesor de inglés.) How are you today? (¿Cómo estás hoy?) What would you like to learn? (¿Qué te gustaría aprender?)',
+      conversationId: Date.now().toString()
+    })
+  }
+})
+
+// Endpoint para continuar conversación
+app.post('/api/ai-tutor/chat', async (req, res) => {
+  try {
+    const { message, languageCode, languageName, userLevel, conversationHistory } = req.body
+
+    const systemPrompt = `You are a ${languageName} teacher. Speak ONLY in ${languageName} with Spanish translations.
+
+RULES:
+- Speak ${languageName} first, then Spanish in parentheses
+- Example: "${getContinueExample(languageCode, languageName)}"
+- Be encouraging and ask questions
+- Student level: ${userLevel}
+- Focus on practical conversation in ${languageName}
+
+Continue the conversation in ${languageName}!`
+
+    const messages = [
+      { role: "system", content: systemPrompt },
+      ...(conversationHistory || []).slice(-6),
+      { role: "user", content: message }
+    ]
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: messages,
+      max_tokens: 200,
+      temperature: 0.7
+    })
+
+    res.json({
+      success: true,
+      message: response.choices[0].message.content
+    })
+
+  } catch (error) {
+    console.error('Error con OpenAI:', error)
+    res.json({
+      success: true,
+      message: 'Hello! (¡Hola!) I\'m your English teacher. (Soy tu profesor de inglés.) How are you today? (¿Cómo estás hoy?) What would you like to learn? (¿Qué te gustaría aprender?)'
+    })
+  }
+})
+
 // Conectar a MongoDB y iniciar servidor
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
@@ -872,8 +1262,11 @@ mongoose.connect(MONGODB_URI, {
 })
 .then(() => {
   console.log('✅ Conectado a MongoDB')
-  app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`)
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Servidor corriendo en:`)
+    console.log(`   Local:    http://localhost:${PORT}`)
+    console.log(`   Red:      http://192.168.0.22:${PORT}`)
+    console.log(`   Móvil:    http://192.168.0.22:${PORT}`)
   })
 })
 .catch(err => console.error('❌ Error conectando a MongoDB:', err))
